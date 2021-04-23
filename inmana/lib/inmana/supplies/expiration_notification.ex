@@ -4,10 +4,15 @@ defmodule Inmana.Supplies.ExpirationNotification do
 
   def send do
     supplies_by_email = GetByExpiration.call()
-    |> Enum.each(fn {email, supplies} ->
-      email
-      |> ExpirationEmail.create(supplies)
-      |> Mailer.deliver_later!()
-    end)
+
+    supplies_by_email
+    |> Task.async_stream(fn {email, supplies} -> send_email(email, supplies) end)
+    |> Stream.run()
+  end
+
+  defp send_email(email, supplies) do
+    email
+    |> ExpirationEmail.create(supplies)
+    |> Mailer.deliver_later!()
   end
 end
